@@ -36,10 +36,10 @@ func ChlkDir(id int) {
 		os.Mkdir(path, 0777)
 	}
 }
-func Stream(url string) {
+func Stream(url string) {// MUST BE OPTIMIZED generate link from id
 	//	/stream/hls/preview/13613/fileList.m3u8
 	fmt.Println(url)
-	urlx := "https://n01.cd.ru.patephone.com" + url
+	urlx := "https://n01.cd.ru.patephone.com" + url 
 	fmt.Println(urlx)
 	client := &http.Client{}
 	req, err := http.NewRequest(
@@ -91,6 +91,6 @@ func GetInfo(id int) {
 	}
 
 	fmt.Println("id=", infoRes.Book.ID, " | ", infoRes.Book.Title, ". ", infoRes.Book.Authors[1].FirstName, " ", infoRes.Book.Authors[1].LastName, "\n", infoRes.Book.Description, infoRes.Book.Duration, infoRes.Book.FileSize, infoRes.Book.PreviewStreamURL)
-	Stream(infoRes.Book.PreviewStreamURL)
+	Stream(infoRes.Book.PreviewStreamURL) // MUST BE OPTIMIZED SEND Id
 
 }
