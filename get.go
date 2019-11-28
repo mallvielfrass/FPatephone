@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -16,7 +17,73 @@ type GetInfoStruct struct {
 	Success bool `json:"success"`
 }
 
-func Parse(date string) {
+func DownloadFile(path string) error {
+
+	// Get the data
+	url := "https://n01.cd.ru.patephone.com/stream/hls/ad/" + path
+	fmt.Println(url)
+	client := &http.Client{}
+	req, err := http.NewRequest(
+		"GET", url, nil,
+	)
+	req.Header.Add("X-CLIENT-IDENTIFIER", "patephone_unlim_android")
+	req.Header.Add("Accept-Encoding", "identity")
+	req.Header.Add("X-AUTH-TOKEN", "hl2LqwCUdcw3RXMT7Rr34NXuULt2jXD3ymnYXqLN65HbeV4zjMCMjcgDFbysKdeZ")
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("error", err)
+		return err
+	}
+	defer resp.Body.Close()
+	fmt.Println(resp)
+	// Create the file
+	out, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	// Write the body to file
+	_, err = io.Copy(out, resp.Body)
+	return err
+}
+func Download(dict map[int]string, id int) {
+	fmt.Println(dict)
+	n := len(dict)
+	path := ""
+	for i := 0; i < n; i++ {
+		path = strconv.Itoa(id) + "/segment" + dict[i] + ".aac"
+		if err := DownloadFile(path); err != nil {
+			panic(err)
+		}
+		//fmt.Println(path)
+		//	url := "https://n01.cd.ru.patephone.com/stream/hls/ad/" + path
+		//	fmt.Println(url)
+		//	client := &http.Client{}
+		//	req, err := http.NewRequest(
+		//		"GET", url, nil,
+		//	)
+		//	req.Header.Add("X-CLIENT-IDENTIFIER", "patephone_unlim_android")
+		//
+		//	resp, err := client.Do(req)
+		//	if err != nil {
+		//		fmt.Println("error", err)
+		//		return
+		//	}
+		//	defer resp.Body.Close()
+		//	out, _ := os.Create(path) //ALARM Fix it
+
+		//	defer out.Close()
+		// Write the body to file
+		//	fmt.Println("---------------------")
+		//	fmt.Println("<-  resp.Body")
+		//	fmt.Println(resp.Body)
+		//	_, err = io.Copy(out, resp.Body)
+		//	return err //ALARM Fix it
+
+	}
+}
+func Parse(date string, id int) {
 	var masser = map[int]string{}
 	s := strings.Split(date, "segment")
 	z := len(s)
@@ -26,9 +93,14 @@ func Parse(date string) {
 		i++
 	}
 	i = i - 1
-	fmt.Println(masser)
-	fmt.Println(i)
-
+	//fmt.Println(masser)
+	fmt.Printf("%d block\n", i)
+	fmt.Println("---------------------")
+	fmt.Println("<-  ChlkDir")
+	ChlkDir(id)
+	fmt.Println("---------------------")
+	fmt.Println("<-  Download")
+	Download(masser, id)
 }
 func ChlkDir(id int) {
 	path := strconv.Itoa(id)
@@ -36,14 +108,14 @@ func ChlkDir(id int) {
 		os.Mkdir(path, 0777)
 	}
 }
-func Stream(url string) {// MUST BE OPTIMIZED generate link from id
+func Stream(id int) { // MUST BE OPTIMIZED generate link from id
 	//	/stream/hls/preview/13613/fileList.m3u8
+
+	url := "https://n01.cd.ru.patephone.com/stream/hls/preview/" + strconv.Itoa(id) + "/fileList.m3u8"
 	fmt.Println(url)
-	urlx := "https://n01.cd.ru.patephone.com" + url 
-	fmt.Println(urlx)
 	client := &http.Client{}
 	req, err := http.NewRequest(
-		"GET", urlx, nil,
+		"GET", url, nil,
 	)
 	req.Header.Add("X-CLIENT-IDENTIFIER", "patephone_unlim_android")
 
@@ -58,9 +130,10 @@ func Stream(url string) {// MUST BE OPTIMIZED generate link from id
 		fmt.Printf("err %s", err)
 		os.Exit(1)
 	}
-//	fmt.Println(string(contents))
-	Parse(string(contents))
-	
+	//	fmt.Println(string(contents))
+	fmt.Println("---------------------")
+	fmt.Println("<-  Parse")
+	Parse(string(contents), id)
 
 }
 func GetInfo(id int) {
@@ -91,6 +164,6 @@ func GetInfo(id int) {
 	}
 
 	fmt.Println("id=", infoRes.Book.ID, " | ", infoRes.Book.Title, ". ", infoRes.Book.Authors[1].FirstName, " ", infoRes.Book.Authors[1].LastName, "\n", infoRes.Book.Description, infoRes.Book.Duration, infoRes.Book.FileSize, infoRes.Book.PreviewStreamURL)
-	Stream(infoRes.Book.PreviewStreamURL) // MUST BE OPTIMIZED SEND Id
+	Stream(infoRes.Book.ID) // MUST BE OPTIMIZED SEND Id
 
 }
