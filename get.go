@@ -37,6 +37,7 @@ func DownloadFile(path string) error {
 	defer resp.Body.Close()
 	fmt.Println(resp)
 	// Create the file
+
 	out, err := os.Create(path)
 	if err != nil {
 		return err
