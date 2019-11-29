@@ -29,6 +29,10 @@ func DownloadFile(path string) error {
 	req.Header.Add("X-CLIENT-IDENTIFIER", "patephone_unlim_android")
 	req.Header.Add("Accept-Encoding", "identity")
 	req.Header.Add("X-AUTH-TOKEN", "hl2LqwCUdcw3RXMT7Rr34NXuULt2jXD3ymnYXqLN65HbeV4zjMCMjcgDFbysKdeZ")
+
+	req.Header.Add("X-AD-TOKEN", "js7dPlxvs66oo69DpuwgvnS4nDAul54C")
+	req.Header.Add("User-Agent", "PatephoneAndroid/8.6.1(219) (XIAOMI Redmi Note 6 Pro; Android 8.1.0)")
+	req.Header.Add("Connection", "Keep-Alive")
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("error", err)
@@ -112,14 +116,18 @@ func ChlkDir(id int) {
 func Stream(id int) { // MUST BE OPTIMIZED generate link from id
 	//	/stream/hls/preview/13613/fileList.m3u8
 
-	url := "https://n01.cd.ru.patephone.com/stream/hls/preview/" + strconv.Itoa(id) + "/fileList.m3u8"
+	url := "https://n01.cd.ru.patephone.com/stream/hls/ad/" + strconv.Itoa(id) + "/fileList.m3u8"
 	fmt.Println(url)
 	client := &http.Client{}
 	req, err := http.NewRequest(
 		"GET", url, nil,
 	)
 	req.Header.Add("X-CLIENT-IDENTIFIER", "patephone_unlim_android")
-
+	//req.Header.Add("Accept-Encoding", "gzip")
+	req.Header.Add("X-AUTH-TOKEN", "hl2LqwCUdcw3RXMT7Rr34NXuULt2jXD3ymnYXqLN65HbeV4zjMCMjcgDFbysKdeZ")
+	req.Header.Add("X-AD-TOKEN", "js7dPlxvs66oo69DpuwgvnS4nDAul54C")
+	req.Header.Add("User-Agent", "PatephoneAndroid/8.6.1(219) (XIAOMI Redmi Note 6 Pro; Android 8.1.0)")
+	//	req.Header.Add("Connection", "Keep-Alive")
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("error", err)
@@ -131,7 +139,9 @@ func Stream(id int) { // MUST BE OPTIMIZED generate link from id
 		fmt.Printf("err %s", err)
 		os.Exit(1)
 	}
-	//	fmt.Println(string(contents))
+	fmt.Println("---------------------")
+	fmt.Println("<-  Content")
+	fmt.Println(string(contents))
 	fmt.Println("---------------------")
 	fmt.Println("<-  Parse")
 	Parse(string(contents), id)

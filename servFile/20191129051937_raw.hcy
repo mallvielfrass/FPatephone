@@ -1,0 +1,10 @@
+GET /stream/hls/ad/13587/segment00005.aac HTTP/1.1
+X-CLIENT-IDENTIFIER: patephone_unlim_android @
+X-AUTH-TOKEN: hl2LqwCUdcw3RXMT7Rr34NXuULt2jXD3ymnYXqLN65HbeV4zjMCMjcgDFbysKdeZ @
+X-AD-TOKEN: js7dPlxvs66oo69DpuwgvnS4nDAul54C @
+X-APPSFLYER-UID: 
+User-Agent: PatephoneAndroid/8.6.1(219) (XIAOMI Redmi Note 6 Pro; Android 8.1.0) @
+Accept-Encoding: identity @
+Host: n01.cd.ru.patephone.com
+Connection: Keep-Alive @
+

@@ -1,1 +1,4 @@
-.aac
+*.aac
+servFile/
+FPatephone
+test/
