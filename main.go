@@ -76,6 +76,9 @@ func Select() int {
 
 	return z
 }
+func Init() {
+
+}
 func main() {
 	client := &http.Client{}
 	req, err := http.NewRequest(

@@ -52,7 +52,7 @@ func GetXAuthToken(XClient, UserAgent string) string {
 	resp, err := client.Do(req)
 	check(err)
 	defer resp.Body.Close()
-	fmt.Println(resp)
+	//fmt.Println(resp)
 	contents, err := ioutil.ReadAll(resp.Body)
 	check(err)
 	fmt.Println(string(contents))
@@ -64,7 +64,7 @@ func GetXAuthToken(XClient, UserAgent string) string {
 
 type GetAdTokenStruct struct {
 	Success bool   `json:"success"`
-	Token   string `json:"token"`
+	Token   string `json:"ad_token"`
 }
 
 func GetXAdToken(XClient, UserAgent, XAuthToken string) string {
@@ -74,19 +74,21 @@ func GetXAdToken(XClient, UserAgent, XAuthToken string) string {
 	req, err := http.NewRequest(
 		"GET", url, nil,
 	)
+	fmt.Printf("%s %s %s",XClient, UserAgent, XAuthToken)
 	req.Header.Add("X-CLIENT-IDENTIFIER", XClient)
 	req.Header.Add("User-Agent", UserAgent)
-	req.Header.Add("X-FEATURES", "F_SHARD,FREE_BOOKS")
-	req.Header.Add("Connection", "Keep-Alive")
+//	req.Header.Add("X-FEATURES", "F_SHARD,FREE_BOOKS")
+//	req.Header.Add("Connection", "Keep-Alive")
 	req.Header.Add("X-AUTH-TOKEN", XAuthToken)
-	req.Header.Add("Accept-Encoding", "gzip")
+//	req.Header.Add("Accept-Encoding", "gzip")
 
 	resp, err := client.Do(req)
 	check(err)
 	defer resp.Body.Close()
-	fmt.Println(resp)
+	//fmt.Println("\nToKEN:",resp)
 	contents, err := ioutil.ReadAll(resp.Body)
 	check(err)
+	fmt.Println(string(contents))
 	var GetAdToken GetAdTokenStruct
 	err = json.Unmarshal(contents, &GetAdToken)
 	check(err)
@@ -99,18 +101,16 @@ func Init() (string, string, string, string) {
 		return "XClient", "XAuthToken", "XAdToken", "UserAgent"
 	} else {
 		fmt.Println("config.toml does not exist ")
-		XClient := "patephone_android"
-		UserAgent := "Patephone Android/10 (XIAOMI Redmi 10 Pro; Android 10)"
+		XClient := "patephone_unlim_android" //NOT CHANGE !!!!!
+		UserAgent := "Patephone Android/8 (XIAOMI Redmi 10 Pro; Android 10)"
 		XAuthToken := GetXAuthToken(XClient, UserAgent)
 		XAdToken := GetXAdToken(XClient, UserAgent, XAuthToken)
-
-		//f, err := os.Create("config.toml")
-		//	check(err)
-		//defer f.Close()
-		//fstring := fmt.Sprintf("XAuthToken = \"%s\" \nXAdToken = \"%s\"\n", XAuthToken, XAdToken)
-
-		//	_, err = f.WriteString(fstring)
-		//	check(err)
+		f, err := os.Create("config.toml")
+			check(err)
+		defer f.Close()
+		fstring := fmt.Sprintf("XAuthToken = \"%s\" \nXAdToken = \"%s\"\n", XAuthToken, XAdToken)
+		_, err = f.WriteString(fstring)
+		check(err)
 		return XClient, XAuthToken, XAdToken, UserAgent
 	}
 	//return XClient, XAuthToken, XAdToken, UserAgent
