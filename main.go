@@ -1,17 +1,41 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
-	"strconv"
-	"strings"
 )
 
+type GetInfoStruct struct {
+	Book    Book `json:"book"`
+	Success bool `json:"success"`
+}
+type Hash struct {
+	XClient    string
+	XAuthToken string
+	XAdToken   string
+	UserAgent  string
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
+}
+
+type SocialProfiles struct{}
+type CreateNewUser struct {
+	Success        bool             `json:"success"`
+	Token          string           `json:"token"`
+	Username       string           `json:"username"`
+	Password       string           `json:"password"`
+	SocialProfiles []SocialProfiles `json:"social_profiles"`
+	MerchantID     string           `json:"merchant_id"`
+}
 type Role struct {
 	Name string `json:"name"`
 	Abbr string `json:"abbr"`
@@ -55,62 +79,135 @@ type Paging struct {
 	Count    int `json:"count"`
 	CountAll int `json:"count_all"`
 }
+
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+func oscheck(err error) {
+	if err != nil {
+		fmt.Printf("err %s", err)
+		os.Exit(1)
+	}
+}
+func GetXAuthToken(XClient, UserAgent string) string {
+	url := "https://api.patephone.com/client-api/auth/createNewUser"
+	fmt.Println(url)
+	client := &http.Client{}
+	req, err := http.NewRequest(
+		"POST", url, nil,
+	)
+	req.Header.Add("X-CLIENT-IDENTIFIER", XClient)
+	req.Header.Add("User-Agent", UserAgent)
+	req.Header.Add("X-FEATURES", "F_SHARD,FREE_BOOKS")
+	req.Header.Add("Connection", "Keep-Alive")
+	resp, err := client.Do(req)
+	check(err)
+	defer resp.Body.Close()
+	//fmt.Println(resp)
+	contents, err := ioutil.ReadAll(resp.Body)
+	check(err)
+	fmt.Println(string(contents))
+	var NewUser CreateNewUser
+	err = json.Unmarshal(contents, &NewUser)
+	check(err)
+	return NewUser.Token
+}
+
+type GetAdTokenStruct struct {
+	Success bool   `json:"success"`
+	Token   string `json:"ad_token"`
+}
+
+func GetXAdToken(XClient, UserAgent, XAuthToken string) string {
+	url := "https://api.patephone.com/client-api/ad/token"
+	fmt.Println(url)
+	client := &http.Client{}
+	req, err := http.NewRequest(
+		"GET", url, nil,
+	)
+	fmt.Printf("%s %s %s", XClient, UserAgent, XAuthToken)
+	req.Header.Add("X-CLIENT-IDENTIFIER", XClient)
+	req.Header.Add("User-Agent", UserAgent)
+	//	req.Header.Add("X-FEATURES", "F_SHARD,FREE_BOOKS")
+	//	req.Header.Add("Connection", "Keep-Alive")
+	req.Header.Add("X-AUTH-TOKEN", XAuthToken)
+	//	req.Header.Add("Accept-Encoding", "gzip")
+
+	resp, err := client.Do(req)
+	check(err)
+	defer resp.Body.Close()
+	//fmt.Println("\nToKEN:",resp)
+	contents, err := ioutil.ReadAll(resp.Body)
+	check(err)
+	fmt.Println(string(contents))
+	var GetAdToken GetAdTokenStruct
+	err = json.Unmarshal(contents, &GetAdToken)
+	check(err)
+	return GetAdToken.Token
+}
+func Init() (string, string, string, string) {
+	//fmt.Printf("Name: '%s', Real: %t, string: %s\n", c.Name, c.Real, world)
+	if fileExists("config.toml") {
+		fmt.Println("config.toml exists")
+		return "XClient", "XAuthToken", "XAdToken", "UserAgent"
+	} else {
+		fmt.Println("config.toml does not exist ")
+		XClient := "patephone_unlim_android" //NOT CHANGE !!!!!
+		UserAgent := "Patephone Android/8 (XIAOMI Redmi 10 Pro; Android 10)"
+		XAuthToken := GetXAuthToken(XClient, UserAgent)
+		XAdToken := GetXAdToken(XClient, UserAgent, XAuthToken)
+		f, err := os.Create("config.toml")
+		check(err)
+		defer f.Close()
+		fstring := fmt.Sprintf("XAuthToken = \"%s\" \nXAdToken = \"%s\"\n", XAuthToken, XAdToken)
+		_, err = f.WriteString(fstring)
+		check(err)
+		return XClient, XAuthToken, XAdToken, UserAgent
+	}
+	//return XClient, XAuthToken, XAdToken, UserAgent
+}
+func (h Hash) Hello() {
+	fmt.Println("Hello ")
+}
+
 type Request struct {
 	Success bool   `json:"success"`
 	Book    []Book `json:"books"`
 	Paging  Paging `json:"paging"`
 }
 
-func Select() int {
-
-	reader := bufio.NewReader(os.Stdin)
-
-	fmt.Println("---------------------")
-	fmt.Println("Select book, please!")
-	fmt.Print("-> ")
-	text, _ := reader.ReadString('\n')
-	// convert CRLF to LF
-	text = strings.Replace(text, "\n", "", -1)
-	z, _ := strconv.Atoi(string(text))
-	//	fmt.Println(z)
-
-	return z
-}
-func Init() {
-
-}
-func main() {
+func (h Hash) SearchBook(target string) Request {
+	url := "https://api.patephone.com/client-api/search/book?search_string=" + target
 	client := &http.Client{}
 	req, err := http.NewRequest(
-		"GET", "https://api.patephone.com/client-api/search/book?search_string=time", nil,
+		"GET", url, nil,
 	)
-
-	req.Header.Add("X-CLIENT-IDENTIFIER", "patephone_unlim_android")
+	req.Header.Add("X-CLIENT-IDENTIFIER", h.XClient)
+	req.Header.Add("User-Agent", h.UserAgent)
+	req.Header.Add("X-AUTH-TOKEN", h.XAuthToken)
+	req.Header.Add("X-AUTH-TOKEN", h.XAdToken)
 	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println("error", err)
-		return
-	}
+	check(err)
 	defer resp.Body.Close()
 	contents, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Printf("err %s", err)
-		os.Exit(1)
-	}
-	//fmt.Printf("content: %s\n", string(contents))
-	//fil:=string(contents)
+	oscheck(err)
 	var result Request
 	err = json.Unmarshal(contents, &result)
-	if err != nil {
-		log.Fatalln("f", err)
+	check(err)
+	return result
+}
+
+func main() {
+	XClient, XAuthToken, XAdToken, UserAgent := Init()
+	api := &Hash{
+		XClient,
+		XAuthToken,
+		XAdToken,
+		UserAgent,
 	}
-	//log.Printf("%#v", result)
-	n := result.Paging.Count
-	for i := 0; i < n; i++ {
-		fmt.Println(i, "\b.) ", result.Book[i].ID, " : ", result.Book[i].Title) //9411
-	}
-	id := Select()
-	fmt.Println("you selected:", id, "\b.)", result.Book[id].Title)
-	fmt.Println("---------------------")
-	GetInfo(result.Book[id].ID)
+	api.Hello()
+	bookSearch := api.SearchBook("Автостопом")
+	fmt.Println(bookSearch)
 }
