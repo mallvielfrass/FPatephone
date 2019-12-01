@@ -10,9 +10,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/BurntSushi/toml"
 )
+
+var wg sync.WaitGroup
 
 type GetInfoStruct struct {
 	Book    Book `json:"book"`
@@ -346,6 +349,7 @@ func ChlkDir(id int) {
 	}
 }
 func (h Hash) DownloadFile(path string) error {
+	defer wg.Done()
 
 	// Get the data
 	url := "https://n01.cd.ru.patephone.com/stream/hls/ad/" + path
@@ -382,13 +386,16 @@ func (h Hash) DownloadFile(path string) error {
 func (h Hash) Download(dict map[int]string, id int) {
 	fmt.Println(dict)
 	n := len(dict)
-	path := ""
 	for i := 0; i < n; i++ {
-		path = strconv.Itoa(id) + dict[i]
-		if err := h.DownloadFile(path); err != nil {
-			panic(err)
-		}
+		wg.Add(1)
+		path := strconv.Itoa(id) + dict[i]
+		go func() {
+			if err := h.DownloadFile(path); err != nil {
+				panic(err)
+			}
+		}()
 	}
+	wg.Wait()
 }
 func main() {
 	XClient, XAuthToken, XAdToken, UserAgent := Init()
