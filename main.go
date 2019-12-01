@@ -10,12 +10,14 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/BurntSushi/toml"
+	"github.com/remeh/sizedwaitgroup"
 )
 
-var wg sync.WaitGroup
+const downloadThreads = 512
+
+var wg = sizedwaitgroup.New(downloadThreads)
 
 type GetInfoStruct struct {
 	Book    Book `json:"book"`
@@ -387,7 +389,7 @@ func (h Hash) Download(dict map[int]string, id int) {
 	fmt.Println(dict)
 	n := len(dict)
 	for i := 0; i < n; i++ {
-		wg.Add(1)
+		wg.Add()
 		path := strconv.Itoa(id) + dict[i]
 		go func() {
 			if err := h.DownloadFile(path); err != nil {
