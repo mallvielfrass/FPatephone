@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+
+	"github.com/BurntSushi/toml"
 )
 
 type GetInfoStruct struct {
@@ -147,11 +149,29 @@ func GetXAdToken(XClient, UserAgent, XAuthToken string) string {
 	check(err)
 	return GetAdToken.Token
 }
+
+type TomlConfig struct {
+	XAuthToken string `toml:"XAuthToken"`
+	XAdToken   string `toml:"organization"`
+}
+
 func Init() (string, string, string, string) {
 	//fmt.Printf("Name: '%s', Real: %t, string: %s\n", c.Name, c.Real, world)
 	if fileExists("config.toml") {
 		fmt.Println("config.toml exists")
-		return "XClient", "XAuthToken", "XAdToken", "UserAgent"
+		var config TomlConfig
+		if _, err := toml.DecodeFile("example.toml", &config); err != nil {
+			fmt.Println(err)
+
+		}
+
+		fmt.Printf("XAuthToken: %s XAdToken : %s\n", config.XAuthToken, config.XAdToken)
+		XClient := "patephone_unlim_android" //NOT CHANGE !!!!!
+		UserAgent := "Patephone Android/8 (XIAOMI Redmi 10 Pro; Android 10)"
+		XAuthToken := config.XAuthToken
+		XAdToken := config.XAdToken
+		return XClient, XAuthToken, XAdToken, UserAgent
+
 	} else {
 		fmt.Println("config.toml does not exist ")
 		XClient := "patephone_unlim_android" //NOT CHANGE !!!!!
