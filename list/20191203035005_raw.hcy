@@ -1,0 +1,12 @@
+GET /client-api/books/1416/chapters HTTP/1.1
+X-CLIENT-IDENTIFIER: patephone_unlim_android
+X-APPSFLYER-UID: 
+User-Agent: PatephoneAndroid/8.6.1(219) (XIAOMI Redmi Note 6 Pro; Android 8.1.0)
+X-FEATURES: F_SHARD,FREE_BOOKS
+X-AUTH-TOKEN: HuQJxgzoXdvoTlv4GkY9TYtWisgwmzyvpDBUvulig1Tg18Nyfcge8PF1zHWCdmGc
+X-AD-TOKEN: HHlerBkyEKFDaY5yVVsn11Pz7exFgKr1
+Cache-Control: public, max-age=60
+Host: api.patephone.com
+Connection: Keep-Alive
+Accept-Encoding: gzip
+

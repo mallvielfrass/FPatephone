@@ -15,10 +15,6 @@ import (
 	"github.com/remeh/sizedwaitgroup"
 )
 
-const downloadThreads = 512
-
-var wg = sizedwaitgroup.New(downloadThreads)
-
 type GetInfoStruct struct {
 	Book    Book `json:"book"`
 	Success bool `json:"success"`
@@ -28,6 +24,7 @@ type Hash struct {
 	XAuthToken string
 	XAdToken   string
 	UserAgent  string
+	ThreadSize int
 }
 
 func fileExists(filename string) bool {
@@ -102,6 +99,36 @@ func oscheck(err error) {
 		os.Exit(1)
 	}
 }
+func GetChapter(id int) {
+
+	var masser = map[int]string{}
+	path := strconv.Itoa(id) + "/fileList.m3u8"
+	file, err := os.Open(path)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer file.Close()
+
+	data := make([]byte, 64)
+	mass := ""
+	for {
+		n, err := file.Read(data)
+		if err == io.EOF { // если конец файла
+			break // выходим из цикла
+		}
+		mass = mass + string(data[:n])
+	}
+	s := strings.Split(mass, "segment")
+	z := len(s)
+	i := 1
+	for i < z {
+		masser[i-1] = "/segment" + strings.Split(s[i], ".aac")[0] + ".aac"
+		i++
+	}
+	i = i - 1
+
+}
 func GetXAuthToken(XClient, UserAgent string) string {
 	url := "https://api.patephone.com/client-api/auth/createNewUser"
 	fmt.Println(url)
@@ -162,9 +189,10 @@ func GetXAdToken(XClient, UserAgent, XAuthToken string) string {
 type TomlConfig struct {
 	XAuthToken string `toml:"XAuthToken"`
 	XAdToken   string `toml:"XAdToken"`
+	ThreadSize int    `toml:"ThreadSize"`
 }
 
-func Init() (string, string, string, string) {
+func Init() (string, string, string, string, int) {
 	//fmt.Printf("Name: '%s', Real: %t, string: %s\n", c.Name, c.Real, world)
 	if fileExists("config.toml") {
 		fmt.Println("config.toml exists")
@@ -179,7 +207,8 @@ func Init() (string, string, string, string) {
 		UserAgent := "Patephone Android/8 (XIAOMI Redmi 10 Pro; Android 10)"
 		XAuthToken := config.XAuthToken
 		XAdToken := config.XAdToken
-		return XClient, XAuthToken, XAdToken, UserAgent
+		ThreadSize := config.ThreadSize
+		return XClient, XAuthToken, XAdToken, UserAgent, ThreadSize
 
 	} else {
 		fmt.Println("config.toml does not exist ")
@@ -187,13 +216,14 @@ func Init() (string, string, string, string) {
 		UserAgent := "Patephone Android/8 (XIAOMI Redmi 10 Pro; Android 10)"
 		XAuthToken := GetXAuthToken(XClient, UserAgent)
 		XAdToken := GetXAdToken(XClient, UserAgent, XAuthToken)
+		ThreadSize := 500
 		f, err := os.Create("config.toml")
 		check(err)
 		defer f.Close()
-		fstring := fmt.Sprintf("XAuthToken = \"%s\" \nXAdToken = \"%s\"\n", XAuthToken, XAdToken)
+		fstring := fmt.Sprintf("XAuthToken = \"%s\" \nXAdToken = \"%s\"\nThreadSize = %d\n", XAuthToken, XAdToken, ThreadSize)
 		_, err = f.WriteString(fstring)
 		check(err)
-		return XClient, XAuthToken, XAdToken, UserAgent
+		return XClient, XAuthToken, XAdToken, UserAgent, ThreadSize
 	}
 	//return XClient, XAuthToken, XAdToken, UserAgent
 }
@@ -339,9 +369,7 @@ func (h Hash) GetInfo(id int) GetInfoStruct {
 	var infoRes GetInfoStruct
 	err = json.Unmarshal(contents, &infoRes)
 	check(err)
-
 	//fmt.Println("id=", infoRes.Book.ID, " | ", infoRes.Book.Title, ". ", infoRes.Book.Authors[1].FirstName, " ", infoRes.Book.Authors[1].LastName, "\n", infoRes.Book.Description, infoRes.Book.Duration, infoRes.Book.FileSize, infoRes.Book.PreviewStreamURL)
-	//Stream(infoRes.Book.ID) // MUST BE OPTIMIZED SEND Id
 	return infoRes
 }
 func ChlkDir(id int) {
@@ -351,7 +379,6 @@ func ChlkDir(id int) {
 	}
 }
 func (h Hash) DownloadFile(path string) error {
-	defer wg.Done()
 
 	// Get the data
 	url := "https://n01.cd.ru.patephone.com/stream/hls/ad/" + path
@@ -386,6 +413,10 @@ func (h Hash) DownloadFile(path string) error {
 	return err
 }
 func (h Hash) Download(dict map[int]string, id int) {
+	const downloadThreads = 512
+
+	var wg = sizedwaitgroup.New(downloadThreads)
+
 	fmt.Println(dict)
 	n := len(dict)
 	for i := 0; i < n; i++ {
@@ -395,20 +426,22 @@ func (h Hash) Download(dict map[int]string, id int) {
 			if err := h.DownloadFile(path); err != nil {
 				panic(err)
 			}
+			defer wg.Done()
 		}()
 	}
 	wg.Wait()
 }
 func main() {
-	XClient, XAuthToken, XAdToken, UserAgent := Init()
+	XClient, XAuthToken, XAdToken, UserAgent, ThreadSize := Init()
 	api := &Hash{
 		XClient,
 		XAuthToken,
 		XAdToken,
 		UserAgent,
+		ThreadSize,
 	}
 	api.Hello()
-	bookSearch := api.SearchBook("time")
+	bookSearch := api.SearchBook("сказка")
 	n := bookSearch.Paging.Count
 	if n > 0 {
 		for i := 0; i < n; i++ {
@@ -428,7 +461,9 @@ func main() {
 	api.Stream(info.Book.ID)
 	parseList := Parse(info.Book.ID)
 	fmt.Println("parseList:\n", parseList)
-	fmt.Println("---------------------")
+
 	api.Download(parseList, info.Book.ID)
+	fmt.Println("---------------------")
+	fmt.Println("finish")
 
 }
