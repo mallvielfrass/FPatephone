@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/BurntSushi/toml"
+	
 	"github.com/remeh/sizedwaitgroup"
 )
 
@@ -27,14 +27,58 @@ type Hash struct {
 	ThreadSize int
 }
 
-func fileExists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return !info.IsDir()
-}
+func GetChapter() map[int]float64 {
 
+	var masser = map[int]float64{}
+	//	path := strconv.Itoa(id) + "/fileList.m3u8"
+
+	file, err := os.Open("fileList.m3u8")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer file.Close()
+
+	data := make([]byte, 64)
+	mass := ""
+	for {
+		n, err := file.Read(data)
+		if err == io.EOF { // если конец файла
+			break // выходим из цикла
+		}
+		mass = mass + string(data[:n])
+	}
+	s := strings.Split(mass, "#EXTINF:")
+	z := len(s)
+	i := 1
+
+	for i < z {
+		spl := strings.Split(s[i], ",")
+		masser[i-1], err = strconv.ParseFloat(spl[0], 64)
+		check(err)
+		i++
+	}
+	i = i - 1
+	return masser
+}
+func SearchTime(time int, num map[int]float64) int {
+	z := len(num)
+	ftime := float64(time * 60)
+	var count float64 = 0
+	i := 0
+	for i < z {
+		count = count + num[i]
+		fmt.Println(i, " : ", count)
+		if count < ftime {
+
+		} else {
+			break
+		}
+		i++
+	}
+	//	i = i - 1
+	return i
+}
 type SocialProfiles struct{}
 type CreateNewUser struct {
 	Success        bool             `json:"success"`
@@ -186,47 +230,6 @@ func GetXAdToken(XClient, UserAgent, XAuthToken string) string {
 	return GetAdToken.Token
 }
 
-type TomlConfig struct {
-	XAuthToken string `toml:"XAuthToken"`
-	XAdToken   string `toml:"XAdToken"`
-	ThreadSize int    `toml:"ThreadSize"`
-}
-
-func Init() (string, string, string, string, int) {
-	//fmt.Printf("Name: '%s', Real: %t, string: %s\n", c.Name, c.Real, world)
-	if fileExists("config.toml") {
-		fmt.Println("config.toml exists")
-		var config TomlConfig
-		if _, err := toml.DecodeFile("config.toml", &config); err != nil {
-			fmt.Println(err)
-
-		}
-
-		fmt.Printf("XAuthToken: %s XAdToken : %s\n", config.XAuthToken, config.XAdToken)
-		XClient := "patephone_unlim_android" //NOT CHANGE !!!!!
-		UserAgent := "Patephone Android/8 (XIAOMI Redmi 10 Pro; Android 10)"
-		XAuthToken := config.XAuthToken
-		XAdToken := config.XAdToken
-		ThreadSize := config.ThreadSize
-		return XClient, XAuthToken, XAdToken, UserAgent, ThreadSize
-
-	} else {
-		fmt.Println("config.toml does not exist ")
-		XClient := "patephone_unlim_android" //NOT CHANGE !!!!!
-		UserAgent := "Patephone Android/8 (XIAOMI Redmi 10 Pro; Android 10)"
-		XAuthToken := GetXAuthToken(XClient, UserAgent)
-		XAdToken := GetXAdToken(XClient, UserAgent, XAuthToken)
-		ThreadSize := 500
-		f, err := os.Create("config.toml")
-		check(err)
-		defer f.Close()
-		fstring := fmt.Sprintf("XAuthToken = \"%s\" \nXAdToken = \"%s\"\nThreadSize = %d\n", XAuthToken, XAdToken, ThreadSize)
-		_, err = f.WriteString(fstring)
-		check(err)
-		return XClient, XAuthToken, XAdToken, UserAgent, ThreadSize
-	}
-	//return XClient, XAuthToken, XAdToken, UserAgent
-}
 func (h Hash) Hello() {
 	fmt.Println("Hello ")
 }
@@ -431,39 +434,4 @@ func (h Hash) Download(dict map[int]string, id int) {
 	}
 	wg.Wait()
 }
-func main() {
-	XClient, XAuthToken, XAdToken, UserAgent, ThreadSize := Init()
-	api := &Hash{
-		XClient,
-		XAuthToken,
-		XAdToken,
-		UserAgent,
-		ThreadSize,
-	}
-	api.Hello()
-	bookSearch := api.SearchBook("сказка")
-	n := bookSearch.Paging.Count
-	if n > 0 {
-		for i := 0; i < n; i++ {
-			fmt.Println(i, "\b.) ", bookSearch.Book[i].ID, " : ", bookSearch.Book[i].Title) //9411
-		}
-	} else {
-		fmt.Println("book not found")
-	}
-	idNum := Select()
-	fmt.Println("you selected:", idNum, "\b.)", bookSearch.Book[idNum].Title)
-	fmt.Println("---------------------")
-	info := api.GetInfo(bookSearch.Book[idNum].ID)
-	fmt.Printf(">>%d \n>>%s \n>>%s \n>>%s \n>>%s \n>>%d \n>>%d \n>>%s \n", info.Book.ID, info.Book.Title, info.Book.Authors[1].FirstName, info.Book.Authors[1].LastName, info.Book.Description, info.Book.Duration, info.Book.FileSize, info.Book.PreviewStreamURL)
-	fmt.Println("<-  ChlkDir")
-	ChlkDir(info.Book.ID)
-	fmt.Println("---------------------")
-	api.Stream(info.Book.ID)
-	parseList := Parse(info.Book.ID)
-	fmt.Println("parseList:\n", parseList)
 
-	api.Download(parseList, info.Book.ID)
-	fmt.Println("---------------------")
-	fmt.Println("finish")
-
-}
