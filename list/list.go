@@ -4,12 +4,18 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 )
 
-func GetChapter() map[int]string {
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+func GetChapter() map[int]float64 {
 
-	var masser = map[int]string{}
+	var masser = map[int]float64{}
 	//	path := strconv.Itoa(id) + "/fileList.m3u8"
 
 	file, err := os.Open("fileList.m3u8")
@@ -34,12 +40,32 @@ func GetChapter() map[int]string {
 
 	for i < z {
 		spl := strings.Split(s[i], ",")
-		masser[i-1] = spl[0] + ":" + strings.Split(spl[1], "\n")[1]
+		masser[i-1], err = strconv.ParseFloat(spl[0], 64)
+		check(err)
 		i++
 	}
 	i = i - 1
 	return masser
 }
+func Search(time int, num map[int]float64) int {
+	z := len(num)
+	ftime := float64(time * 60)
+	var count float64 = 0
+	i := 0
+	for i < z {
+		count = count + num[i]
+		fmt.Println(i, " : ", count)
+		if count < ftime {
+
+		} else {
+			break
+		}
+		i++
+	}
+	//	i = i - 1
+	return i
+}
 func main() {
-	fmt.Println(GetChapter())
+	x := GetChapter()
+	fmt.Println(Search(20, x))
 }
