@@ -4,3 +4,4 @@ FPatephone
 main
 .trash
 *.toml
+trash/
