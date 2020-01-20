@@ -40,5 +40,9 @@ func main() {
 	defer out.Close()
 	_, err = out.WriteString(stream)
 	check(err)
+	infoB := api.GetChapter(info.Book.ID)
+	for i := 0; i < len(infoB.Chapters); i++ {
+		fmt.Println(infoB.Chapters[i].Name)
+	}
 	//}
 }
