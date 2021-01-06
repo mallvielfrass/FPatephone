@@ -12,7 +12,25 @@ func main() {
 	//FPatephone
 	XClient, XAuthToken, XAdToken, UserAgent, ThreadSize := Init()
 	api := FPatephone.Api(XClient, XAuthToken, XAdToken, UserAgent, ThreadSize)
-	bookSearch := api.SearchBook("сказка")
+	argsv := os.Args[1:]
+	searchWord := ""
+	for wrld := range argsv {
+
+		sp := ""
+		if wrld == 0 {
+
+		} else {
+			sp = " "
+		}
+		searchWord = searchWord + sp + argsv[wrld]
+	}
+	fmt.Println(searchWord)
+	if searchWord != "" {
+
+	} else {
+		searchWord = "сказка"
+	}
+	bookSearch := api.SearchBook(searchWord)
 	n := bookSearch.Paging.Count
 	if n > 0 {
 		for i := 0; i < n; i++ {
